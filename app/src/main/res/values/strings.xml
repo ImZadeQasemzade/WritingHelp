@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">WritingHelp</string>
+    <string name="action_fix_grammar">Fix Grammar</string>
+    <string name="action_rewrite">Rewrite with AI</string>
+</resources>

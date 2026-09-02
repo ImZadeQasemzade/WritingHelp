@@ -1,0 +1,20 @@
+<resources>
+
+    <!-- Normal app theme, used by the launcher Settings screen. -->
+    <style name="Theme.WritingHelp" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <!--
+      Theme for the ACTION_PROCESS_TEXT activities. The window itself is fully transparent;
+      Compose draws its own scrim + centered card, so the activity looks like a small floating
+      popup rather than a full-screen page - this matches how the OS's own text-processing
+      pickers (e.g. Translate, Dictionary) present themselves.
+    -->
+    <style name="Theme.WritingHelp.Popup" parent="android:Theme.Translucent.NoTitleBar">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
+
+</resources>

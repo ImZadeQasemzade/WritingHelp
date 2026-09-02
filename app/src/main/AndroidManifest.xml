@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Needed to call the Claude API directly from the device. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.WritingHelp"
+        android:supportsRtl="true">
+
+        <!-- Settings / home screen: where the user pastes their Claude API key. -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:theme="@style/Theme.WritingHelp">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          These two activities are what make the "Fix Grammar" / "Rewrite with AI" options
+          show up next to Copy/Cut/Paste whenever text is selected in ANY app on the device.
+          Android calls this the ACTION_PROCESS_TEXT intent - see:
+          https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT
+          Each activity is a separate manifest entry (rather than one activity with two
+          intent-filters) because android:label is what the system shows as the menu entry
+          text, and each entry needs its own label.
+        -->
+        <activity
+            android:name=".FixGrammarActivity"
+            android:label="@string/action_fix_grammar"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.WritingHelp.Popup">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".RewriteActivity"
+            android:label="@string/action_rewrite"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.WritingHelp.Popup">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+    </application>
+</manifest>
