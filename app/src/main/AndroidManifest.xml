@@ -4,6 +4,12 @@
     <!-- Needed to call the Claude API directly from the device. -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <!-- Floating bubble: overlay window + foreground service that keeps it alive. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
@@ -59,6 +65,32 @@
                 <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- Keeps the floating bubble overlay alive while it's enabled. -->
+        <service
+            android:name=".bubble.BubbleService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Floating quick-action bubble for on-screen text rewriting" />
+        </service>
+
+        <!--
+          Read-only helper for the bubble: reads the focused field's selected text and
+          writes the rewrite back. The user must switch this on in Accessibility settings.
+        -->
+        <service
+            android:name=".bubble.WritingAccessibilityService"
+            android:exported="false"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/accessibility_service_config" />
+        </service>
 
     </application>
 </manifest>

@@ -18,12 +18,12 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -34,10 +34,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import com.writinghelp.rewrite.R
 import com.writinghelp.rewrite.data.CLAUDE_MODEL_OPTIONS
 import com.writinghelp.rewrite.data.SettingsRepository
 import com.writinghelp.rewrite.network.ClaudeApiClient
@@ -51,9 +53,23 @@ private sealed class TestState {
     data class Failed(val message: String) : TestState()
 }
 
+/** Snapshot of the floating-bubble feature state, recomputed by [com.writinghelp.rewrite.MainActivity]. */
+data class BubbleUiState(
+    val enabled: Boolean = false,
+    val running: Boolean = false,
+    val canOverlay: Boolean = false,
+    val accessibilityOn: Boolean = false
+)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen(settingsRepository: SettingsRepository) {
+fun SettingsScreen(
+    settingsRepository: SettingsRepository,
+    bubble: BubbleUiState = BubbleUiState(),
+    onBubbleToggle: (Boolean) -> Unit = {},
+    onGrantOverlay: () -> Unit = {},
+    onGrantAccessibility: () -> Unit = {}
+) {
     var apiKey by remember { mutableStateOf(settingsRepository.apiKey.orEmpty()) }
     var apiKeyVisible by remember { mutableStateOf(false) }
     var selectedModel by remember { mutableStateOf(settingsRepository.model) }
@@ -196,6 +212,45 @@ fun SettingsScreen(settingsRepository: SettingsRepository) {
                 "Failed: ${state.message}",
                 color = MaterialTheme.colorScheme.error
             )
+        }
+
+        Spacer(Modifier.height(28.dp))
+        Text(stringResource(R.string.bubble_section_title), style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.bubble_section_blurb),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(8.dp))
+
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.bubble_switch_label), modifier = Modifier.weight(1f))
+            Switch(checked = bubble.running, onCheckedChange = onBubbleToggle)
+        }
+
+        val statusRes = when {
+            bubble.running -> R.string.bubble_status_on
+            bubble.enabled && !bubble.canOverlay -> R.string.bubble_status_needs_overlay
+            bubble.enabled && !bubble.accessibilityOn -> R.string.bubble_status_needs_accessibility
+            else -> R.string.bubble_status_off
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(statusRes),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        if (bubble.enabled && !bubble.canOverlay) {
+            TextButton(onClick = onGrantOverlay, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                Text(stringResource(R.string.bubble_grant_overlay))
+            }
+        }
+        if (bubble.enabled && bubble.canOverlay && !bubble.accessibilityOn) {
+            TextButton(onClick = onGrantAccessibility, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
+                Text(stringResource(R.string.bubble_grant_accessibility))
+            }
         }
     }
 }

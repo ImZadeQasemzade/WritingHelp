@@ -33,6 +33,11 @@ class SettingsRepository(context: Context) {
         get() = prefs.getString(KEY_MODEL, DEFAULT_MODEL_ID) ?: DEFAULT_MODEL_ID
         set(value) = prefs.edit().putString(KEY_MODEL, value).apply()
 
+    /** Whether the user has turned the floating bubble on (they may still need to grant permissions). */
+    var bubbleEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BUBBLE_ENABLED, false)
+        set(value) = prefs.edit().putBoolean(KEY_BUBBLE_ENABLED, value).apply()
+
     fun hasApiKey(): Boolean = !apiKey.isNullOrBlank()
 
     fun clearApiKey() {
@@ -43,5 +48,6 @@ class SettingsRepository(context: Context) {
         const val PREFS_FILE_NAME = "writinghelp_secure_prefs"
         const val KEY_API_KEY = "claude_api_key"
         const val KEY_MODEL = "claude_model"
+        const val KEY_BUBBLE_ENABLED = "bubble_enabled"
     }
 }

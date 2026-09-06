@@ -2,4 +2,37 @@
     <string name="app_name">WritingHelp</string>
     <string name="action_fix_grammar">Fix Grammar</string>
     <string name="action_rewrite">Rewrite with AI</string>
+
+    <!-- Floating bubble -->
+    <string name="bubble_section_title">Floating bubble</string>
+    <string name="bubble_section_blurb">Adds a draggable button on top of every app. Tap it, pick Fix Grammar or AI Rewrite, and it rewrites your selected text (or the whole field) in place — works in apps that don\'t show the selection-menu entries, like Telegram.</string>
+    <string name="bubble_switch_label">Show floating bubble</string>
+    <string name="bubble_status_on">On — tap the notification or long-press the bubble to stop.</string>
+    <string name="bubble_status_off">Off</string>
+    <string name="bubble_status_needs_overlay">Needs “Display over other apps” permission</string>
+    <string name="bubble_status_needs_accessibility">Needs the WritingHelp accessibility service turned on</string>
+    <string name="bubble_grant_overlay">Grant overlay permission</string>
+    <string name="bubble_grant_accessibility">Open Accessibility settings</string>
+    <string name="bubble_rationale_overlay">WritingHelp needs permission to draw the bubble on top of other apps.</string>
+    <string name="bubble_rationale_accessibility">WritingHelp uses an accessibility service only to read the text you select and write the rewrite back into the field. Nothing is logged or sent anywhere except your own Claude API call.</string>
+
+    <string name="bubble_accessibility_description">Lets the WritingHelp floating bubble read your selected text and replace it with the AI rewrite, in any app.</string>
+
+    <string name="bubble_notification_channel">Floating bubble</string>
+    <string name="bubble_notification_title">WritingHelp bubble active</string>
+    <string name="bubble_notification_text">Tap to stop</string>
+
+    <!-- Bubble result strip -->
+    <string name="bubble_menu_fix">Fix Grammar</string>
+    <string name="bubble_menu_rewrite">AI Rewrite</string>
+    <string name="bubble_redo">Redo</string>
+    <string name="bubble_undo">Undo</string>
+    <string name="bubble_working">Working…</string>
+    <string name="bubble_hint_no_field">Tap in a text field first</string>
+    <string name="bubble_hint_no_text">Nothing to rewrite</string>
+    <string name="bubble_hint_no_key">Add a Claude API key in WritingHelp</string>
+    <string name="bubble_hint_lost_field">Lost the text field — try again</string>
+    <string name="bubble_hint_done">Replaced</string>
+    <string name="bubble_hint_undone">Original restored</string>
+    <string name="bubble_error">Something went wrong</string>
 </resources>
