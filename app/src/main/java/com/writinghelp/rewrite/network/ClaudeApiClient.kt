@@ -1,5 +1,7 @@
 package com.writinghelp.rewrite.network
 
+import com.writinghelp.rewrite.data.ClaudeModelOption
+import com.writinghelp.rewrite.data.descriptionFor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -107,9 +109,42 @@ class ClaudeApiClient(
         "Claude API error ($code)"
     }
 
-    private companion object {
-        const val API_URL = "https://api.anthropic.com/v1/messages"
-        const val ANTHROPIC_VERSION = "2023-06-01"
-        const val MAX_OUTPUT_TOKENS = 4096
+    companion object {
+        private const val API_URL = "https://api.anthropic.com/v1/messages"
+        private const val MODELS_URL = "https://api.anthropic.com/v1/models?limit=100"
+        private const val ANTHROPIC_VERSION = "2023-06-01"
+        private const val MAX_OUTPUT_TOKENS = 4096
+
+        /**
+         * Lists the models [apiKey] can use, newest first, via the Models API.
+         * Returns null on any failure so callers can keep showing what they already have.
+         */
+        suspend fun listModels(apiKey: String): List<ClaudeModelOption>? = withContext(Dispatchers.IO) {
+            try {
+                val request = Request.Builder()
+                    .url(MODELS_URL)
+                    .addHeader("x-api-key", apiKey)
+                    .addHeader("anthropic-version", ANTHROPIC_VERSION)
+                    .get()
+                    .build()
+                OkHttpClient.Builder()
+                    .connectTimeout(15, TimeUnit.SECONDS)
+                    .readTimeout(15, TimeUnit.SECONDS)
+                    .build()
+                    .newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) return@withContext null
+                        val data = JSONObject(response.body?.string().orEmpty()).optJSONArray("data")
+                            ?: return@withContext null
+                        (0 until data.length())
+                            .map { data.getJSONObject(it) }
+                            .map { it.optString("id") to it.optString("display_name") }
+                            .filter { (id, _) -> id.startsWith("claude-") }
+                            .map { (id, name) -> ClaudeModelOption(id, name.ifBlank { id }, descriptionFor(id)) }
+                            .ifEmpty { null }
+                    }
+            } catch (e: Exception) {
+                null
+            }
+        }
     }
 }

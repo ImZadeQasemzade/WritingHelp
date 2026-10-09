@@ -27,6 +27,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,7 +41,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.writinghelp.rewrite.R
-import com.writinghelp.rewrite.data.CLAUDE_MODEL_OPTIONS
+import com.writinghelp.rewrite.data.ClaudeModelOption
+import com.writinghelp.rewrite.data.FALLBACK_MODEL_OPTIONS
+import com.writinghelp.rewrite.data.defaultModelFrom
+import com.writinghelp.rewrite.data.descriptionFor
 import com.writinghelp.rewrite.data.SettingsRepository
 import com.writinghelp.rewrite.network.ClaudeApiClient
 import com.writinghelp.rewrite.network.ClaudeResult
@@ -76,9 +80,26 @@ fun SettingsScreen(
     var modelMenuExpanded by remember { mutableStateOf(false) }
     var testState by remember { mutableStateOf<TestState>(TestState.Idle) }
     var savedNotice by remember { mutableStateOf(false) }
+    var savedApiKey by remember { mutableStateOf(settingsRepository.apiKey) }
+    var modelOptions by remember { mutableStateOf(FALLBACK_MODEL_OPTIONS) }
+    var modelsLive by remember { mutableStateOf(false) }
+
+    // Fetch the latest models each time Settings opens (and again after a new key is saved).
+    // If the saved model isn't offered any more, switch to the newest Sonnet.
+    LaunchedEffect(savedApiKey) {
+        val key = savedApiKey?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        val live = ClaudeApiClient.listModels(key) ?: return@LaunchedEffect
+        modelOptions = live
+        modelsLive = true
+        if (live.none { it.apiId == selectedModel }) {
+            selectedModel = defaultModelFrom(live)
+            settingsRepository.model = selectedModel
+        }
+    }
 
     val scope = rememberCoroutineScope()
-    val selectedModelOption = CLAUDE_MODEL_OPTIONS.first { it.apiId == selectedModel }
+    val selectedModelOption = modelOptions.firstOrNull { it.apiId == selectedModel }
+        ?: ClaudeModelOption(selectedModel, selectedModel, descriptionFor(selectedModel))
 
     Column(
         modifier = Modifier
@@ -125,6 +146,13 @@ fun SettingsScreen(
 
         Spacer(Modifier.height(20.dp))
         Text("Model", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            if (modelsLive) "Latest models available to your key."
+            else "Built-in list. Save an API key to load the latest models.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
         Spacer(Modifier.height(8.dp))
 
         ExposedDropdownMenuBox(
@@ -144,7 +172,7 @@ fun SettingsScreen(
                 expanded = modelMenuExpanded,
                 onDismissRequest = { modelMenuExpanded = false }
             ) {
-                CLAUDE_MODEL_OPTIONS.forEach { option ->
+                modelOptions.forEach { option ->
                     DropdownMenuItem(
                         text = { Text(option.displayName) },
                         onClick = {
@@ -164,6 +192,7 @@ fun SettingsScreen(
                 onClick = {
                     settingsRepository.apiKey = apiKey.trim().ifBlank { null }
                     settingsRepository.model = selectedModel
+                    savedApiKey = settingsRepository.apiKey
                     savedNotice = true
                     testState = TestState.Idle
                 },
