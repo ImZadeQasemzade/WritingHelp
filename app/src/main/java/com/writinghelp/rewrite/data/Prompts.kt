@@ -13,10 +13,18 @@ val REFINEMENT_CHIPS = listOf(
 
 object Prompts {
 
-    private const val OUTPUT_RULES =
-        "Output ONLY the rewritten text and nothing else: no preamble, no explanations, " +
-            "no quotation marks around it, and no markdown formatting. Keep the same language " +
-            "as the input, and preserve line breaks and emoji where present."
+    /**
+     * The reply is pasted straight into the user's text field, so the model wraps the result in
+     * <output> tags and the app keeps only what's inside them (see ClaudeApiClient). That drops
+     * any stray commentary like "The input is in Persian, so I translate it into English."
+     */
+    private const val TAG_RULES =
+        "Put the final text between <output> and </output>, and write nothing outside those " +
+            "tags: no preamble, no explanations, no notes about what you did. Inside the tags, " +
+            "no quotation marks around the text and no markdown formatting. Preserve line " +
+            "breaks and emoji where present."
+
+    private const val OUTPUT_RULES = "Keep the same language as the input. $TAG_RULES"
 
     fun systemPromptFor(mode: RewriteMode, refinementInstruction: String? = null): String =
         when (mode) {
@@ -44,8 +52,6 @@ object Prompts {
                     "Persian script. If the input is in any other language, translate it into " +
                     "English. Keep the meaning, tone, and level of formality of the original, and " +
                     "use natural, everyday phrasing rather than a word-for-word translation. " +
-                    "Output ONLY the translation and nothing else: no preamble, no explanations, " +
-                    "no notes about the source language, no quotation marks around it, and no " +
-                    "markdown formatting. Preserve line breaks and emoji where present."
+                    "Decide the direction silently and never mention the languages. $TAG_RULES"
         }
 }

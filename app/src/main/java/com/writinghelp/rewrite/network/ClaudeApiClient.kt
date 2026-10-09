@@ -58,7 +58,7 @@ class ClaudeApiClient(
                         )
                     }
 
-                    val text = extractText(bodyString)
+                    val text = extractText(bodyString)?.let(::unwrapOutput)
                     if (text.isNullOrBlank()) {
                         ClaudeResult.Failure("Claude returned an empty response. Please try again.")
                     } else {
@@ -102,6 +102,19 @@ class ClaudeApiClient(
         return builder.toString()
     }
 
+    /**
+     * Keeps only the text inside <output>...</output> when the reply has it (the prompts ask
+     * for it), so any commentary around the result never reaches the user's text field.
+     * Replies without the tags (e.g. the Settings connection test) pass through unchanged.
+     */
+    private fun unwrapOutput(text: String): String {
+        val start = text.indexOf(OPEN_TAG)
+        if (start < 0) return text
+        val from = start + OPEN_TAG.length
+        val end = text.indexOf(CLOSE_TAG, from)
+        return if (end < 0) text.substring(from) else text.substring(from, end)
+    }
+
     private fun extractErrorMessage(body: String, code: Int): String = try {
         val message = JSONObject(body).optJSONObject("error")?.optString("message")
         if (!message.isNullOrBlank()) message else "Claude API error ($code)"
@@ -114,6 +127,8 @@ class ClaudeApiClient(
         private const val MODELS_URL = "https://api.anthropic.com/v1/models?limit=100"
         private const val ANTHROPIC_VERSION = "2023-06-01"
         private const val MAX_OUTPUT_TOKENS = 4096
+        private const val OPEN_TAG = "<output>"
+        private const val CLOSE_TAG = "</output>"
 
         /**
          * Lists the models [apiKey] can use, newest first, via the Models API.
