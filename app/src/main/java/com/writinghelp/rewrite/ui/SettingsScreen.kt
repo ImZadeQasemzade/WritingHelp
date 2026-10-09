@@ -62,7 +62,8 @@ data class BubbleUiState(
     val enabled: Boolean = false,
     val running: Boolean = false,
     val canOverlay: Boolean = false,
-    val accessibilityOn: Boolean = false
+    val accessibilityOn: Boolean = false,
+    val keepInNotification: Boolean = false
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,6 +72,7 @@ fun SettingsScreen(
     settingsRepository: SettingsRepository,
     bubble: BubbleUiState = BubbleUiState(),
     onBubbleToggle: (Boolean) -> Unit = {},
+    onKeepInNotificationToggle: (Boolean) -> Unit = {},
     onGrantOverlay: () -> Unit = {},
     onGrantAccessibility: () -> Unit = {}
 ) {
@@ -281,5 +283,17 @@ fun SettingsScreen(
                 Text(stringResource(R.string.bubble_grant_accessibility))
             }
         }
+
+        Spacer(Modifier.height(16.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text(stringResource(R.string.notif_keep_label), modifier = Modifier.weight(1f))
+            Switch(checked = bubble.keepInNotification, onCheckedChange = onKeepInNotificationToggle)
+        }
+        Spacer(Modifier.height(4.dp))
+        Text(
+            stringResource(R.string.notif_keep_blurb),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

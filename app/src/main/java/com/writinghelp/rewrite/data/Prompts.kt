@@ -37,5 +37,15 @@ object Prompts {
                 }
                 append(OUTPUT_RULES)
             }
+
+            RewriteMode.TRANSLATE ->
+                "You are a translator for short personal messages (texts, chats, emails). " +
+                    "If the input is in English, translate it into Persian (Farsi), written in " +
+                    "Persian script. If the input is in any other language, translate it into " +
+                    "English. Keep the meaning, tone, and level of formality of the original, and " +
+                    "use natural, everyday phrasing rather than a word-for-word translation. " +
+                    "Output ONLY the translation and nothing else: no preamble, no explanations, " +
+                    "no notes about the source language, no quotation marks around it, and no " +
+                    "markdown formatting. Preserve line breaks and emoji where present."
         }
 }

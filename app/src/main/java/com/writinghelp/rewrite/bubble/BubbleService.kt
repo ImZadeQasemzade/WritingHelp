@@ -40,6 +40,9 @@ import kotlinx.coroutines.launch
  * Foreground service that owns the floating bubble overlay. The bubble is never focusable,
  * so the text field the user is working in keeps input focus and
  * [WritingAccessibilityService] can read/replace it.
+ *
+ * With "Keep in notification bar" on, the service (and its notification) stays up even while
+ * the bubble is hidden, and tapping the notification shows or hides the bubble.
  */
 class BubbleService : Service() {
 
@@ -47,6 +50,8 @@ class BubbleService : Service() {
     private lateinit var rootView: View
     private lateinit var params: WindowManager.LayoutParams
     private lateinit var controller: BubbleController
+    private lateinit var settings: SettingsRepository
+    private var overlayShown = false
 
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -67,24 +72,44 @@ class BubbleService : Service() {
         super.onCreate()
         // Must call startForeground() promptly after startForegroundService(), even on the
         // bail-out path, or the system kills us with a "did not call startForeground" crash.
+        settings = SettingsRepository(applicationContext)
         startForegroundNotification()
 
-        if (!Settings.canDrawOverlays(this)) {
-            stopSelf()
-            return
-        }
         isRunning = true
-        controller = BubbleController(SettingsRepository(applicationContext))
+        controller = BubbleController(settings)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        addOverlay()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        if (intent?.action == ACTION_STOP) {
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            ACTION_STOP -> {
+                settings.bubbleEnabled = false
+                settings.keepInNotification = false
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            ACTION_TOGGLE -> settings.bubbleEnabled = !settings.bubbleEnabled
         }
+        applyState()
         return START_STICKY
+    }
+
+    /** Shows or hides the bubble to match settings and refreshes the notification, or stops. */
+    private fun applyState() {
+        val show = settings.bubbleEnabled && Settings.canDrawOverlays(this)
+        if (!show && !settings.keepInNotification) {
+            stopSelf()
+            return
+        }
+        if (show && !overlayShown) addOverlay()
+        if (!show && overlayShown) removeOverlay()
+        startForegroundNotification()
+    }
+
+    /** Long-pressing the bubble hides it (and stops the service unless it's kept in the bar). */
+    private fun hideBubble() {
+        settings.bubbleEnabled = false
+        applyState()
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -93,10 +118,16 @@ class BubbleService : Service() {
         isRunning = false
         mainHandler.removeCallbacksAndMessages(null)
         scope.cancel()
-        if (this::rootView.isInitialized && rootView.isAttachedToWindow) {
-            runCatching { windowManager.removeView(rootView) }
-        }
+        if (overlayShown) runCatching { windowManager.removeView(rootView) }
+        overlayShown = false
         super.onDestroy()
+    }
+
+    private fun removeOverlay() {
+        mainHandler.removeCallbacksAndMessages(null)
+        controller.reset()
+        runCatching { windowManager.removeView(rootView) }
+        overlayShown = false
     }
 
     // ---- overlay setup ---------------------------------------------------------------------
@@ -127,6 +158,7 @@ class BubbleService : Service() {
         }
 
         windowManager.addView(rootView, params)
+        overlayShown = true
         rootView.post { snapToEdge() }
 
         rootView.setOnTouchListener { _, event ->
@@ -140,6 +172,7 @@ class BubbleService : Service() {
 
         rootView.findViewById<Button>(R.id.btn_fix).setOnClickListener { beginRewrite(RewriteMode.FIX_GRAMMAR) }
         rootView.findViewById<Button>(R.id.btn_rewrite).setOnClickListener { beginRewrite(RewriteMode.REWRITE) }
+        rootView.findViewById<Button>(R.id.btn_translate).setOnClickListener { beginRewrite(RewriteMode.TRANSLATE) }
         btnRedo.setOnClickListener { runStep { controller.redo() } }
         btnUndo.setOnClickListener { runStep { controller.undo() } }
 
@@ -153,7 +186,7 @@ class BubbleService : Service() {
         var startParamX = 0
         var startParamY = 0
         var dragging = false
-        val longPress = Runnable { stopSelf() }
+        val longPress = Runnable { hideBubble() }
 
         bubble.setOnTouchListener { _, event ->
             when (event.action) {
@@ -370,16 +403,40 @@ class BubbleService : Service() {
             Intent(this, MainActivity::class.java),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
-        val notification: Notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val toggleIntent = PendingIntent.getService(
+            this, 2,
+            Intent(this, BubbleService::class.java).setAction(ACTION_TOGGLE),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val builder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_bubble)
-            .setContentTitle(getString(R.string.bubble_notification_title))
-            .setContentText(getString(R.string.bubble_notification_text))
-            .setContentIntent(stopIntent)
-            .addAction(0, getString(R.string.bubble_notification_text), stopIntent)
-            .addAction(0, getString(R.string.app_name), openIntent)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .build()
+
+        if (settings.keepInNotification) {
+            // Tap toggles the bubble. Without the overlay permission it can't be shown, so the
+            // tap opens the app instead, where the user can grant it.
+            val canOverlay = Settings.canDrawOverlays(this)
+            val text = when {
+                !canOverlay -> R.string.notif_needs_permission
+                overlayShown -> R.string.notif_bubble_shown
+                else -> R.string.notif_bubble_hidden
+            }
+            builder
+                .setContentTitle(getString(R.string.app_name))
+                .setContentText(getString(text))
+                .setContentIntent(if (canOverlay) toggleIntent else openIntent)
+                .addAction(0, getString(R.string.notif_turn_off), stopIntent)
+                .addAction(0, getString(R.string.notif_open_app), openIntent)
+        } else {
+            builder
+                .setContentTitle(getString(R.string.bubble_notification_title))
+                .setContentText(getString(R.string.bubble_notification_text))
+                .setContentIntent(stopIntent)
+                .addAction(0, getString(R.string.bubble_notification_text), stopIntent)
+                .addAction(0, getString(R.string.app_name), openIntent)
+        }
+        val notification: Notification = builder.build()
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
@@ -394,12 +451,14 @@ class BubbleService : Service() {
             private set
 
         const val ACTION_STOP = "com.writinghelp.rewrite.bubble.STOP"
+        const val ACTION_TOGGLE = "com.writinghelp.rewrite.bubble.TOGGLE"
         private const val CHANNEL_ID = "writinghelp_bubble"
         private const val NOTIFICATION_ID = 4711
         private const val LONG_PRESS_MS = 600L
         private const val COLLAPSE_IDLE_MS = 8_000L
         private const val COLLAPSE_SHORT_MS = 1_500L
 
+        /** Starts the service, or tells a running one to re-read its settings. */
         fun start(context: Context) {
             val intent = Intent(context, BubbleService::class.java)
             context.startForegroundService(intent)

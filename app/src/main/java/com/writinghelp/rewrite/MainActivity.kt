@@ -38,6 +38,7 @@ class MainActivity : ComponentActivity() {
                     settingsRepository = settings,
                     bubble = bubbleState.value,
                     onBubbleToggle = ::onBubbleToggle,
+                    onKeepInNotificationToggle = ::onKeepInNotificationToggle,
                     onGrantOverlay = ::requestOverlayPermission,
                     onGrantAccessibility = ::openAccessibilitySettings
                 )
@@ -53,20 +54,26 @@ class MainActivity : ComponentActivity() {
 
     private fun onBubbleToggle(on: Boolean) {
         settings.bubbleEnabled = on
-        if (!on) {
-            BubbleService.stop(this)
-            refreshBubbleState()
-            return
+        if (on) {
+            requestNotificationPermission()
+            when {
+                !Settings.canDrawOverlays(this) -> requestOverlayPermission()
+                !isAccessibilityEnabled() -> openAccessibilitySettings()
+            }
         }
+        refreshBubbleState()
+    }
+
+    private fun onKeepInNotificationToggle(on: Boolean) {
+        settings.keepInNotification = on
+        if (on) requestNotificationPermission()
+        refreshBubbleState()
+    }
+
+    private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
         }
-        when {
-            !Settings.canDrawOverlays(this) -> requestOverlayPermission()
-            !isAccessibilityEnabled() -> openAccessibilitySettings()
-            else -> BubbleService.start(this)
-        }
-        refreshBubbleState()
     }
 
     /** Called when we come back from a system permission screen. */
@@ -76,18 +83,22 @@ class MainActivity : ComponentActivity() {
         val canOverlay = Settings.canDrawOverlays(this)
         val accOn = isAccessibilityEnabled()
         val wants = settings.bubbleEnabled
+        val keep = settings.keepInNotification
 
-        if (wants && canOverlay && accOn && !BubbleService.isRunning) {
+        // The service runs while the bubble is up, or always when it's kept in the bar.
+        // Starting it again just makes it re-read the settings.
+        if (keep || (wants && canOverlay && accOn)) {
             BubbleService.start(this)
-        } else if (!wants && BubbleService.isRunning) {
+        } else if (BubbleService.isRunning) {
             BubbleService.stop(this)
         }
 
         bubbleState.value = BubbleUiState(
             enabled = wants,
-            running = BubbleService.isRunning && canOverlay && accOn,
+            running = wants && canOverlay && accOn,
             canOverlay = canOverlay,
-            accessibilityOn = accOn
+            accessibilityOn = accOn,
+            keepInNotification = keep
         )
     }
 

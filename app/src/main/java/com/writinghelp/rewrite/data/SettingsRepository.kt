@@ -38,6 +38,11 @@ class SettingsRepository(context: Context) {
         get() = prefs.getBoolean(KEY_BUBBLE_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_BUBBLE_ENABLED, value).apply()
 
+    /** Keep the notification (and service) up at all times; tapping it shows/hides the bubble. */
+    var keepInNotification: Boolean
+        get() = prefs.getBoolean(KEY_KEEP_IN_NOTIFICATION, false)
+        set(value) = prefs.edit().putBoolean(KEY_KEEP_IN_NOTIFICATION, value).apply()
+
     fun hasApiKey(): Boolean = !apiKey.isNullOrBlank()
 
     fun clearApiKey() {
@@ -49,5 +54,6 @@ class SettingsRepository(context: Context) {
         const val KEY_API_KEY = "claude_api_key"
         const val KEY_MODEL = "claude_model"
         const val KEY_BUBBLE_ENABLED = "bubble_enabled"
+        const val KEY_KEEP_IN_NOTIFICATION = "keep_in_notification"
     }
 }

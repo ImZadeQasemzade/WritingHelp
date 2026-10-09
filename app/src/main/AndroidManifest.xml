@@ -9,6 +9,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- "Keep in notification bar": bring the notification back after a restart. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:allowBackup="false"
@@ -30,11 +32,11 @@
         </activity>
 
         <!--
-          These two activities are what make the "Fix Grammar" / "Rewrite with AI" options
+          These activities are what make the "Fix Grammar" / "Rewrite with AI" / "Translate" options
           show up next to Copy/Cut/Paste whenever text is selected in ANY app on the device.
           Android calls this the ACTION_PROCESS_TEXT intent - see:
           https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT
-          Each activity is a separate manifest entry (rather than one activity with two
+          Each activity is a separate manifest entry (rather than one activity with several
           intent-filters) because android:label is what the system shows as the menu entry
           text, and each entry needs its own label.
         -->
@@ -66,6 +68,20 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".TranslateActivity"
+            android:label="@string/action_translate"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:theme="@style/Theme.WritingHelp.Popup">
+            <intent-filter>
+                <action android:name="android.intent.action.PROCESS_TEXT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
         <!-- Keeps the floating bubble overlay alive while it's enabled. -->
         <service
             android:name=".bubble.BubbleService"
@@ -75,6 +91,15 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="Floating quick-action bubble for on-screen text rewriting" />
         </service>
+
+        <receiver
+            android:name=".bubble.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
 
         <!--
           Read-only helper for the bubble: reads the focused field's selected text and

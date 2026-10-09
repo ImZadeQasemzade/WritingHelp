@@ -70,7 +70,7 @@ fun ProcessTextScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = if (mode == RewriteMode.FIX_GRAMMAR) "Fix Grammar" else "Rewrite with AI",
+                        text = mode.title,
                         style = MaterialTheme.typography.titleMedium,
                         modifier = Modifier.weight(1f)
                     )
