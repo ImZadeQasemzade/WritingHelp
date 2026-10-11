@@ -43,6 +43,17 @@ class SettingsRepository(context: Context) {
         get() = prefs.getBoolean(KEY_KEEP_IN_NOTIFICATION, false)
         set(value) = prefs.edit().putBoolean(KEY_KEEP_IN_NOTIFICATION, value).apply()
 
+    var mainLanguage: String
+        get() = prefs.getString(KEY_MAIN_LANGUAGE, DEFAULT_MAIN_LANGUAGE) ?: DEFAULT_MAIN_LANGUAGE
+        set(value) = prefs.edit().putString(KEY_MAIN_LANGUAGE, value).apply()
+
+    var secondLanguage: String
+        get() = prefs.getString(KEY_SECOND_LANGUAGE, DEFAULT_SECOND_LANGUAGE) ?: DEFAULT_SECOND_LANGUAGE
+        set(value) = prefs.edit().putString(KEY_SECOND_LANGUAGE, value).apply()
+
+    val languages: LanguagePair
+        get() = LanguagePair(mainLanguage, secondLanguage)
+
     fun hasApiKey(): Boolean = !apiKey.isNullOrBlank()
 
     fun clearApiKey() {
@@ -55,5 +66,7 @@ class SettingsRepository(context: Context) {
         const val KEY_MODEL = "claude_model"
         const val KEY_BUBBLE_ENABLED = "bubble_enabled"
         const val KEY_KEEP_IN_NOTIFICATION = "keep_in_notification"
+        const val KEY_MAIN_LANGUAGE = "main_language"
+        const val KEY_SECOND_LANGUAGE = "second_language"
     }
 }

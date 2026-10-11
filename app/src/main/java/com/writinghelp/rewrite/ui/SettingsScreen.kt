@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.writinghelp.rewrite.R
 import com.writinghelp.rewrite.data.ClaudeModelOption
 import com.writinghelp.rewrite.data.FALLBACK_MODEL_OPTIONS
+import com.writinghelp.rewrite.data.LANGUAGES
 import com.writinghelp.rewrite.data.defaultModelFrom
 import com.writinghelp.rewrite.data.descriptionFor
 import com.writinghelp.rewrite.data.SettingsRepository
@@ -85,6 +86,8 @@ fun SettingsScreen(
     var savedApiKey by remember { mutableStateOf(settingsRepository.apiKey) }
     var modelOptions by remember { mutableStateOf(FALLBACK_MODEL_OPTIONS) }
     var modelsLive by remember { mutableStateOf(false) }
+    var mainLanguage by remember { mutableStateOf(settingsRepository.mainLanguage) }
+    var secondLanguage by remember { mutableStateOf(settingsRepository.secondLanguage) }
 
     // Fetch the latest models each time Settings opens (and again after a new key is saved).
     // If the saved model isn't offered any more, switch to the newest Sonnet.
@@ -187,6 +190,29 @@ fun SettingsScreen(
             }
         }
 
+        Spacer(Modifier.height(20.dp))
+        Text("Languages", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Fix Grammar and AI Rewrite always write in your main language. Translate turns " +
+                "your main language into your second one, and anything else into your main one.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(Modifier.height(8.dp))
+        LanguageDropdown("Main language", mainLanguage) { picked ->
+            // Picking the second language as main swaps the two, so they never match.
+            if (picked == secondLanguage) secondLanguage = mainLanguage
+            mainLanguage = picked
+            savedNotice = false
+        }
+        Spacer(Modifier.height(8.dp))
+        LanguageDropdown("Second language", secondLanguage) { picked ->
+            if (picked == mainLanguage) mainLanguage = secondLanguage
+            secondLanguage = picked
+            savedNotice = false
+        }
+
         Spacer(Modifier.height(24.dp))
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -194,6 +220,8 @@ fun SettingsScreen(
                 onClick = {
                     settingsRepository.apiKey = apiKey.trim().ifBlank { null }
                     settingsRepository.model = selectedModel
+                    settingsRepository.mainLanguage = mainLanguage
+                    settingsRepository.secondLanguage = secondLanguage
                     savedApiKey = settingsRepository.apiKey
                     savedNotice = true
                     testState = TestState.Idle
@@ -295,5 +323,32 @@ fun SettingsScreen(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageDropdown(label: String, selected: String, onPick: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = selected,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) }
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            LANGUAGES.forEach { language ->
+                DropdownMenuItem(
+                    text = { Text(language) },
+                    onClick = {
+                        onPick(language)
+                        expanded = false
+                    }
+                )
+            }
+        }
     }
 }

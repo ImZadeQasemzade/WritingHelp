@@ -52,7 +52,7 @@ class BubbleController(private val settings: SettingsRepository) {
         val input = field.targetText
         if (input.isBlank()) return Outcome.Message(R.string.bubble_hint_no_text)
 
-        val result = callClaude(Prompts.systemPromptFor(mode, null), input)
+        val result = callClaude(Prompts.systemPromptFor(mode, settings.languages), input)
             ?: return authOutcome()
         return when (result) {
             is ClaudeResult.Success -> {
@@ -72,7 +72,7 @@ class BubbleController(private val settings: SettingsRepository) {
     /** Re-run the current mode on the originally selected text. */
     suspend fun redo(): Outcome {
         val input = originalInput ?: return Outcome.Message(R.string.bubble_hint_lost_field)
-        val result = callClaude(Prompts.systemPromptFor(mode, null), input)
+        val result = callClaude(Prompts.systemPromptFor(mode, settings.languages), input)
             ?: return authOutcome()
         return applyReplacement(result)
     }
@@ -80,7 +80,7 @@ class BubbleController(private val settings: SettingsRepository) {
     /** Tone chip: refine the last result with [instruction] (REWRITE only, matches the popup). */
     suspend fun refine(instruction: String): Outcome {
         if (originalInput == null) return Outcome.Message(R.string.bubble_hint_lost_field)
-        val result = callClaude(Prompts.systemPromptFor(RewriteMode.REWRITE, instruction), lastResult)
+        val result = callClaude(Prompts.systemPromptFor(RewriteMode.REWRITE, settings.languages, instruction), lastResult)
             ?: return authOutcome()
         return applyReplacement(result)
     }

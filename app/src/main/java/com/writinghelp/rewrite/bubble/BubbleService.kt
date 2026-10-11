@@ -428,6 +428,15 @@ class BubbleService : Service() {
                 .setContentIntent(if (canOverlay) toggleIntent else openIntent)
                 .addAction(0, getString(R.string.notif_turn_off), stopIntent)
                 .addAction(0, getString(R.string.notif_open_app), openIntent)
+                // Android 14+ lets the user swipe/clear even a foreground-service notification.
+                // When that happens we're told via this intent and post it again right away.
+                .setDeleteIntent(
+                    PendingIntent.getService(
+                        this, 3,
+                        Intent(this, BubbleService::class.java).setAction(ACTION_REPOST),
+                        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+                    )
+                )
         } else {
             builder
                 .setContentTitle(getString(R.string.bubble_notification_title))
@@ -452,6 +461,8 @@ class BubbleService : Service() {
 
         const val ACTION_STOP = "com.writinghelp.rewrite.bubble.STOP"
         const val ACTION_TOGGLE = "com.writinghelp.rewrite.bubble.TOGGLE"
+        /** Sent when the user dismisses the kept notification; applyState() re-posts it. */
+        private const val ACTION_REPOST = "com.writinghelp.rewrite.bubble.REPOST"
         private const val CHANNEL_ID = "writinghelp_bubble"
         private const val NOTIFICATION_ID = 4711
         private const val LONG_PRESS_MS = 600L

@@ -53,7 +53,7 @@ class ProcessTextViewModel(
         state = ScreenState.Loading
         viewModelScope.launch {
             val client = ClaudeApiClient(apiKey = apiKey, model = settingsRepository.model)
-            val systemPrompt = Prompts.systemPromptFor(mode, refinementInstruction)
+            val systemPrompt = Prompts.systemPromptFor(mode, settingsRepository.languages, refinementInstruction)
 
             when (val result = client.sendMessage(systemPrompt, inputText)) {
                 is ClaudeResult.Success -> {

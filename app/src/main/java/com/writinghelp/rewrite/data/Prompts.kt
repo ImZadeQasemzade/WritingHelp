@@ -24,16 +24,24 @@ object Prompts {
             "no quotation marks around the text and no markdown formatting. Preserve line " +
             "breaks and emoji where present."
 
-    private const val OUTPUT_RULES = "Keep the same language as the input. $TAG_RULES"
+    /** Fix Grammar and AI Rewrite always answer in the user's main language. */
+    private fun outputRules(main: String) =
+        "Write the result in $main, in its native script. If the input is in another " +
+            "language, translate it into $main as part of this. Do this silently and never " +
+            "mention the languages. $TAG_RULES"
 
-    fun systemPromptFor(mode: RewriteMode, refinementInstruction: String? = null): String =
+    fun systemPromptFor(
+        mode: RewriteMode,
+        languages: LanguagePair,
+        refinementInstruction: String? = null
+    ): String =
         when (mode) {
             RewriteMode.FIX_GRAMMAR ->
                 "You are a precise grammar and spelling correction assistant for short " +
                     "personal messages (texts, chats, emails). Correct grammar, spelling, and " +
                     "punctuation mistakes while preserving the author's exact meaning, tone, and " +
                     "style. Do not rephrase sentences that are already correct, and do not make " +
-                    "the message more formal than the original. $OUTPUT_RULES"
+                    "the message more formal than the original. ${outputRules(languages.main)}"
 
             RewriteMode.REWRITE -> buildString {
                 append(
@@ -43,15 +51,17 @@ object Prompts {
                 if (!refinementInstruction.isNullOrBlank()) {
                     append("Specifically, ").append(refinementInstruction).append(". ")
                 }
-                append(OUTPUT_RULES)
+                append(outputRules(languages.main))
             }
 
             RewriteMode.TRANSLATE ->
                 "You are a translator for short personal messages (texts, chats, emails). " +
-                    "If the input is in English, translate it into Persian (Farsi), written in " +
-                    "Persian script. If the input is in any other language, translate it into " +
-                    "English. Keep the meaning, tone, and level of formality of the original, and " +
-                    "use natural, everyday phrasing rather than a word-for-word translation. " +
-                    "Decide the direction silently and never mention the languages. $TAG_RULES"
+                    "If the input is in ${languages.main}, translate it into " +
+                    "${languages.second}. If the input is in any other language, translate it " +
+                    "into ${languages.main}. Write the translation in the target language's " +
+                    "native script. Keep the meaning, tone, and level of formality of the " +
+                    "original, and use natural, everyday phrasing rather than a word-for-word " +
+                    "translation. Decide the direction silently and never mention the " +
+                    "languages. $TAG_RULES"
         }
 }
