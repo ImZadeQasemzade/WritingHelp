@@ -80,3 +80,31 @@ app/src/main/java/com/writinghelp/rewrite/
     ├── SettingsScreen.kt           Settings UI
     └── theme/Theme.kt              Compose Material 3 theme
 ```
+
+## Windows app
+
+`windows/` holds a Windows tray app with the same three actions (Fix Grammar, AI Rewrite with
+the refinement chips, Translate), the same prompts, the same main/second language settings and
+the same live model list (Sonnet by default).
+
+Windows doesn't let one app add entries to other apps' right-click menus, so you select text
+anywhere and either press **Ctrl+Shift+Space** or **Ctrl + right-click**. A small menu opens at the
+pointer; pick an action, then **Replace** pastes the result over your selection (or **Copy** it).
+Both triggers can be switched off in Settings (tray icon → Settings…), along with
+"Start with Windows". Settings live in `%APPDATA%\WritingHelp`, with the API key encrypted by
+Windows DPAPI.
+
+How it reads the selection: it sends Ctrl+C to the focused app, reads the clipboard, and puts
+your previous clipboard text straight back (pasting works the same way with Ctrl+V). Text only:
+if the clipboard held an image, it's replaced by the selection.
+
+Build (Python 3.11+):
+
+```
+cd windows
+python -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+.venv\Scripts\python build.py      # -> exe\WritingHelp.exe
+```
+
+Run from source with `.venv\Scripts\python run.py`.

@@ -12,3 +12,9 @@ app/build/
 app/release/
 app/debug/
 *.hprof
+
+# Windows app
+windows/.venv/
+windows/build/
+windows/dist/
+__pycache__/
