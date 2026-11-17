@@ -27,7 +27,9 @@ class WritingAccessibilityService : AccessibilityService() {
         val selectionStart: Int,
         val selectionEnd: Int,
         val hadSelection: Boolean,
-        val packageName: String?
+        val packageName: String?,
+        /** Caret position when nothing is selected (end of the text if the field doesn't say). */
+        val cursor: Int = fullText.length
     ) {
         /** The text the rewrite should run on: the selection, or the whole field. */
         val targetText: String
@@ -43,6 +45,10 @@ class WritingAccessibilityService : AccessibilityService() {
         /** Span in [fullText] the rewrite output should occupy (whole field when nothing was selected). */
         val replaceStart: Int get() = if (hadSelection) selectionStart else 0
         val replaceEnd: Int get() = if (hadSelection) selectionEnd else fullText.length
+
+        /** Span "Write for me" output goes into: the selection, or an insert at the caret. */
+        val insertStart: Int get() = if (hadSelection) selectionStart else cursor
+        val insertEnd: Int get() = if (hadSelection) selectionEnd else cursor
     }
 
     override fun onServiceConnected() {
@@ -67,13 +73,17 @@ class WritingAccessibilityService : AccessibilityService() {
     /** Reads the focused editable node, or null if there isn't one. */
     fun captureFocusedField(): FocusedField? {
         val node = findFocusedEditable() ?: return null
-        val text = node.text?.toString() ?: ""
+        // An empty field reports its placeholder ("Message", "Type here…") as its text.
+        val text = if (node.isShowingHintText) "" else node.text?.toString() ?: ""
         var start = node.textSelectionStart
         var end = node.textSelectionEnd
         val hasSelection = start in 0..text.length && end in 0..text.length && start != end
+        val caret = if (!hasSelection && start in 0..text.length) start else text.length
         if (!hasSelection) {
             start = 0
             end = text.length
+        } else if (start > end) {
+            start = end.also { end = start }
         }
         val pkg = node.packageName?.toString()
         node.recycleCompat()
@@ -82,7 +92,8 @@ class WritingAccessibilityService : AccessibilityService() {
             selectionStart = start,
             selectionEnd = end,
             hadSelection = hasSelection,
-            packageName = pkg
+            packageName = pkg,
+            cursor = caret
         )
     }
 

@@ -20,6 +20,23 @@ text-selection menu. This app declares two such activities — `FixGrammarActivi
 5. For "Rewrite with AI" specifically, you can tap a chip (Professional / Friendly / Concise /
    Shorter / Casual) to redo the rewrite with that instruction, without leaving the popup.
 
+### Floating bubble
+
+For apps whose selection menu doesn't show these entries (Telegram, for example), turn on the
+floating bubble in Settings. Tap it and pick an action. It works on your selection, or on the
+whole field when nothing is selected, and replaces the text in place:
+
+- **Fix Grammar**, **AI Rewrite**, **Translate**: same as the selection-menu entries.
+- **Write for me**: type what you need (e.g. "an email to my friend about Saturday") and it
+  writes it at your cursor, or in place of your selection. With no text field focused, the
+  result goes to the clipboard.
+- After a result: **Redo**, **Undo**, tone chips (AI Rewrite / Write for me), and **Why?**
+  (Fix Grammar / AI Rewrite), which opens a card above or below the bubble with short bullet
+  points on what changed and why, so you can learn from the edits.
+
+Every action can be switched on or off under **Settings ▸ Actions**. Switching off Fix Grammar,
+AI Rewrite or Translate also removes it from the text-selection menu.
+
 There's no iOS equivalent of this feature: unlike Android, iOS doesn't let third-party apps add
 entries to the system-wide text-selection menu in other apps.
 

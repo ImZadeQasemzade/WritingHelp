@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import com.writinghelp.rewrite.R
 import com.writinghelp.rewrite.data.ClaudeModelOption
 import com.writinghelp.rewrite.data.FALLBACK_MODEL_OPTIONS
+import com.writinghelp.rewrite.data.Feature
 import com.writinghelp.rewrite.data.LANGUAGES
 import com.writinghelp.rewrite.data.defaultModelFrom
 import com.writinghelp.rewrite.data.descriptionFor
@@ -75,7 +76,8 @@ fun SettingsScreen(
     onBubbleToggle: (Boolean) -> Unit = {},
     onKeepInNotificationToggle: (Boolean) -> Unit = {},
     onGrantOverlay: () -> Unit = {},
-    onGrantAccessibility: () -> Unit = {}
+    onGrantAccessibility: () -> Unit = {},
+    onFeatureToggle: (Feature, Boolean) -> Unit = { _, _ -> }
 ) {
     var apiKey by remember { mutableStateOf(settingsRepository.apiKey.orEmpty()) }
     var apiKeyVisible by remember { mutableStateOf(false) }
@@ -88,6 +90,9 @@ fun SettingsScreen(
     var modelsLive by remember { mutableStateOf(false) }
     var mainLanguage by remember { mutableStateOf(settingsRepository.mainLanguage) }
     var secondLanguage by remember { mutableStateOf(settingsRepository.secondLanguage) }
+    var featureStates by remember {
+        mutableStateOf(Feature.entries.associateWith { settingsRepository.isEnabled(it) })
+    }
 
     // Fetch the latest models each time Settings opens (and again after a new key is saved).
     // If the saved model isn't offered any more, switch to the newest Sonnet.
@@ -271,6 +276,35 @@ fun SettingsScreen(
                 "Failed: ${state.message}",
                 color = MaterialTheme.colorScheme.error
             )
+        }
+
+        Spacer(Modifier.height(28.dp))
+        Text("Actions", style = MaterialTheme.typography.titleMedium)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            "Choose what WritingHelp offers. Changes apply right away.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Feature.entries.forEach { feature ->
+            Spacer(Modifier.height(10.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                    Text(feature.title, style = MaterialTheme.typography.bodyLarge)
+                    Text(
+                        feature.description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = featureStates[feature] ?: true,
+                    onCheckedChange = { on ->
+                        featureStates = featureStates + (feature to on)
+                        onFeatureToggle(feature, on)
+                    }
+                )
+            }
         }
 
         Spacer(Modifier.height(28.dp))

@@ -1,10 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bubble + notification icon: the launcher nib and sparkles, cropped and all white. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="#FFFFFF">
-    <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M3,17.25V21h3.75L17.81,9.94l-3.75,-3.75L3,17.25zM20.71,7.04c0.39,-0.39 0.39,-1.02 0,-1.41l-2.34,-2.34c-0.39,-0.39 -1.02,-0.39 -1.41,0l-1.83,1.83 3.75,3.75 1.83,-1.83z" />
+    android:viewportWidth="66"
+    android:viewportHeight="66">
+    <group
+        android:translateX="-23.5"
+        android:translateY="-22.5">
+        <path
+            android:fillColor="#FFFFFF"
+            android:fillType="evenOdd"
+            android:pathData="M50,24 C61,34 69,45 69,57 L55,83 Q50,89 45,83 L31,57 C31,45 39,34 50,24 Z M45.4,55 a4.6,4.6 0 1,0 9.2,0 a4.6,4.6 0 1,0 -9.2,0 Z M48.8,61 L51.2,61 L51.2,80 L48.8,80 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M72,27.5 Q73,34 79.5,35 Q73,36 72,42.5 Q71,36 64.5,35 Q71,34 72,27.5 Z" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M79,43.5 Q79.5,46.5 82.5,47 Q79.5,47.5 79,50.5 Q78.5,47.5 75.5,47 Q78.5,46.5 79,43.5 Z" />
+    </group>
 </vector>

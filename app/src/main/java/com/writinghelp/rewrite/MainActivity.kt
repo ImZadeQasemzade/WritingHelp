@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.mutableStateOf
 import com.writinghelp.rewrite.bubble.BubbleService
 import com.writinghelp.rewrite.bubble.WritingAccessibilityService
+import com.writinghelp.rewrite.data.Feature
 import com.writinghelp.rewrite.data.SettingsRepository
 import com.writinghelp.rewrite.ui.BubbleUiState
 import com.writinghelp.rewrite.ui.SettingsScreen
@@ -40,11 +41,13 @@ class MainActivity : ComponentActivity() {
                     onBubbleToggle = ::onBubbleToggle,
                     onKeepInNotificationToggle = ::onKeepInNotificationToggle,
                     onGrantOverlay = ::requestOverlayPermission,
-                    onGrantAccessibility = ::openAccessibilitySettings
+                    onGrantAccessibility = ::openAccessibilitySettings,
+                    onFeatureToggle = ::onFeatureToggle
                 )
             }
         }
         refreshBubbleState()
+        FeatureComponents.sync(this, settings)
     }
 
     override fun onResume() {
@@ -62,6 +65,12 @@ class MainActivity : ComponentActivity() {
             }
         }
         refreshBubbleState()
+    }
+
+    /** Switching an action off also removes it from the text-selection menu. */
+    private fun onFeatureToggle(feature: Feature, on: Boolean) {
+        settings.setEnabled(feature, on)
+        FeatureComponents.sync(this, settings)
     }
 
     private fun onKeepInNotificationToggle(on: Boolean) {

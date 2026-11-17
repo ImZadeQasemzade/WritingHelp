@@ -17,4 +17,17 @@
         <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
     </style>
 
+    <!-- One row of the bubble's action menu: full-width, left-aligned text button. -->
+    <style name="BubbleMenuItem" parent="android:Widget.Material.Button.Borderless">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minHeight">44dp</item>
+        <item name="android:gravity">start|center_vertical</item>
+        <item name="android:paddingStart">14dp</item>
+        <item name="android:paddingEnd">18dp</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">#3730A3</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+
 </resources>

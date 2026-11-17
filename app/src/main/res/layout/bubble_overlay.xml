@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Single overlay view added to the WindowManager by BubbleService.
-  Collapsed = only @id/bubble is visible. Tapping it reveals @id/panel, which shows
-  either @id/menu (pick a mode) or @id/strip (working / result actions).
+  Collapsed = only @id/bubble is visible. Tapping it reveals @id/panel, which shows one of:
+  @id/menu (pick an action), @id/write_box (type a "Write for me" request) or
+  @id/strip (working / result actions).
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
@@ -19,38 +20,92 @@
         android:visibility="gone"
         android:background="@drawable/bubble_panel_bg"
         android:elevation="8dp"
-        android:padding="8dp"
+        android:padding="6dp"
         android:layout_marginEnd="8dp">
 
         <LinearLayout
             android:id="@+id/menu"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical">
 
             <Button
                 android:id="@+id/btn_fix"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/bubble_menu_fix"
-                android:textColor="#1565C0" />
+                style="@style/BubbleMenuItem"
+                android:text="@string/bubble_menu_fix" />
 
             <Button
                 android:id="@+id/btn_rewrite"
-                style="?android:attr/buttonBarButtonStyle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/bubble_menu_rewrite"
-                android:textColor="#1565C0" />
+                style="@style/BubbleMenuItem"
+                android:text="@string/bubble_menu_rewrite" />
 
             <Button
                 android:id="@+id/btn_translate"
-                style="?android:attr/buttonBarButtonStyle"
+                style="@style/BubbleMenuItem"
+                android:text="@string/bubble_menu_translate" />
+
+            <Button
+                android:id="@+id/btn_write"
+                style="@style/BubbleMenuItem"
+                android:text="@string/bubble_menu_write" />
+
+            <TextView
+                android:id="@+id/menu_empty"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/bubble_menu_translate"
-                android:textColor="#1565C0" />
+                android:maxWidth="220dp"
+                android:padding="10dp"
+                android:text="@string/bubble_menu_all_off"
+                android:textColor="#444444"
+                android:textSize="13sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/write_box"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <EditText
+                android:id="@+id/write_input"
+                android:layout_width="260dp"
+                android:layout_height="wrap_content"
+                android:hint="@string/bubble_write_hint"
+                android:imeOptions="actionSend|flagNoExtractUi"
+                android:inputType="textMultiLine|textCapSentences|textAutoCorrect"
+                android:maxLines="4"
+                android:minLines="2"
+                android:gravity="top|start"
+                android:importantForAutofill="no"
+                android:textColor="#222222"
+                android:textColorHint="#888888"
+                android:textSize="15sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="end"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btn_write_cancel"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bubble_cancel"
+                    android:textColor="#666666" />
+
+                <Button
+                    android:id="@+id/btn_write_go"
+                    style="?android:attr/buttonBarButtonStyle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/bubble_write_go"
+                    android:textColor="#4F46E5"
+                    android:textStyle="bold" />
+            </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
@@ -90,7 +145,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/bubble_redo"
-                        android:textColor="#1565C0" />
+                        android:textColor="#4F46E5" />
 
                     <Button
                         android:id="@+id/btn_undo"
@@ -98,7 +153,16 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/bubble_undo"
-                        android:textColor="#1565C0" />
+                        android:textColor="#4F46E5" />
+
+                    <Button
+                        android:id="@+id/btn_explain"
+                        style="?android:attr/buttonBarButtonStyle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/bubble_explain"
+                        android:textColor="#7C3AED"
+                        android:textStyle="bold" />
                 </LinearLayout>
             </HorizontalScrollView>
         </LinearLayout>
@@ -113,8 +177,8 @@
 
         <ImageView
             android:id="@+id/bubble_icon"
-            android:layout_width="24dp"
-            android:layout_height="24dp"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_gravity="center"
             android:src="@drawable/ic_bubble"
             android:contentDescription="@string/bubble_switch_label" />

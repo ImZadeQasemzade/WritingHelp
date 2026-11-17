@@ -54,6 +54,15 @@ class SettingsRepository(context: Context) {
     val languages: LanguagePair
         get() = LanguagePair(mainLanguage, secondLanguage)
 
+    /** Every action is on until the user switches it off in Settings. */
+    fun isEnabled(feature: Feature): Boolean = prefs.getBoolean(feature.prefKey, true)
+
+    fun setEnabled(feature: Feature, on: Boolean) {
+        prefs.edit().putBoolean(feature.prefKey, on).apply()
+    }
+
+    fun isModeEnabled(mode: RewriteMode): Boolean = isEnabled(Feature.forMode(mode))
+
     fun hasApiKey(): Boolean = !apiKey.isNullOrBlank()
 
     fun clearApiKey() {

@@ -63,5 +63,33 @@ object Prompts {
                     "original, and use natural, everyday phrasing rather than a word-for-word " +
                     "translation. Decide the direction silently and never mention the " +
                     "languages. $TAG_RULES"
+
+            RewriteMode.WRITE ->
+                "You are a writing assistant. The user tells you what they want written, for " +
+                    "example \"an email to my friend inviting her to dinner on Saturday\", and " +
+                    "you write it for them, ready to send. Match the tone the request implies " +
+                    "(casual for friends, polished for work), keep it natural and appropriately " +
+                    "short, and don't invent specific facts such as names, dates or places beyond " +
+                    "what the request gives; where something is missing, keep the wording general " +
+                    "instead of adding placeholders in brackets. Write in ${languages.main}, in its " +
+                    "native script, unless the request asks for another language. $TAG_RULES"
         }
+
+    /**
+     * "Why?" in the bubble: short, teachable bullet points on what changed between the user's
+     * text and the Fix Grammar / AI Rewrite result. One bullet per line, starting with "• ".
+     */
+    fun explainPrompt(languages: LanguagePair): String =
+        "You are a friendly writing tutor helping someone learn to write better. You get their " +
+            "ORIGINAL text and a REVISED version. Explain the most useful changes in 2 to 6 " +
+            "bullet points. Keep every bullet short (under 20 words): quote the change briefly " +
+            "and name the reason or rule, for example: 'has went' → 'has gone': use the past " +
+            "participle after 'has'. Focus on what helps them write better next time (grammar " +
+            "rules, word choice, clarity, tone) and skip trivial or repeated changes. If nothing " +
+            "meaningful changed, give one bullet saying the text was already fine. Write the " +
+            "explanations in ${languages.main}, keeping the quoted words as they appear. Put " +
+            "each bullet on its own line, starting with \"• \". $TAG_RULES"
+
+    fun explainInput(original: String, revised: String): String =
+        "ORIGINAL:\n$original\n\nREVISED:\n$revised"
 }
