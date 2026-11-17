@@ -103,7 +103,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/bubble_write_go"
-                    android:textColor="#4F46E5"
+                    android:textColor="#185FA5"
                     android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
@@ -145,7 +145,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/bubble_redo"
-                        android:textColor="#4F46E5" />
+                        android:textColor="#185FA5" />
 
                     <Button
                         android:id="@+id/btn_undo"
@@ -153,7 +153,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/bubble_undo"
-                        android:textColor="#4F46E5" />
+                        android:textColor="#185FA5" />
 
                     <Button
                         android:id="@+id/btn_explain"
@@ -161,7 +161,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="@string/bubble_explain"
-                        android:textColor="#7C3AED"
+                        android:textColor="#0C447C"
                         android:textStyle="bold" />
                 </LinearLayout>
             </HorizontalScrollView>

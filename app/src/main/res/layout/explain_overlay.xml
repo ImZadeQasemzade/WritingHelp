@@ -24,7 +24,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="@string/explain_title"
-            android:textColor="#4F46E5"
+            android:textColor="#185FA5"
             android:textSize="15sp"
             android:textStyle="bold" />
 

@@ -509,7 +509,7 @@ class BubbleService : Service() {
         REFINEMENT_CHIPS.forEach { chip ->
             val b = Button(this, null, android.R.attr.buttonBarButtonStyle).apply {
                 text = chip.label
-                setTextColor(0xFF4F46E5.toInt())
+                setTextColor(0xFF185FA5.toInt())
                 setOnClickListener { runStep { controller.refine(chip.instruction) } }
             }
             stripActions.addView(b)
@@ -675,7 +675,7 @@ class BubbleService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val builder = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_bubble)
+            .setSmallIcon(R.drawable.ic_notification)
             .setOngoing(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
 

@@ -11,7 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
-private val SeedPrimary = Color(0xFF4F46E5)
+private val SeedPrimary = Color(0xFF185FA5)
 
 private val LightColors = lightColorScheme(primary = SeedPrimary)
 private val DarkColors = darkColorScheme(primary = Color(0xFFB4B0FF))

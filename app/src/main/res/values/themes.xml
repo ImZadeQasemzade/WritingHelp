@@ -26,7 +26,7 @@
         <item name="android:paddingStart">14dp</item>
         <item name="android:paddingEnd">18dp</item>
         <item name="android:textAllCaps">false</item>
-        <item name="android:textColor">#3730A3</item>
+        <item name="android:textColor">#0C447C</item>
         <item name="android:textSize">15sp</item>
     </style>
 
