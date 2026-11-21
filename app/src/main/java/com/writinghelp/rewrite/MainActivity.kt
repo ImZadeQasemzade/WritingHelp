@@ -16,12 +16,21 @@ import com.writinghelp.rewrite.data.Feature
 import com.writinghelp.rewrite.data.SettingsRepository
 import com.writinghelp.rewrite.ui.BubbleUiState
 import com.writinghelp.rewrite.ui.SettingsScreen
+import com.writinghelp.rewrite.ui.VoiceUiState
 import com.writinghelp.rewrite.ui.theme.WritingHelpTheme
+import com.writinghelp.rewrite.voice.ime.VoiceKeyboardService
+import android.content.pm.PackageManager
+import android.view.inputmethod.InputMethodManager
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
 
     private val settings by lazy { SettingsRepository(applicationContext) }
     private val bubbleState = mutableStateOf(BubbleUiState())
+    private val voiceState = mutableStateOf(VoiceUiState())
+
+    private val micPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { refreshVoiceState() }
 
     private val overlayPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -42,17 +51,43 @@ class MainActivity : ComponentActivity() {
                     onKeepInNotificationToggle = ::onKeepInNotificationToggle,
                     onGrantOverlay = ::requestOverlayPermission,
                     onGrantAccessibility = ::openAccessibilitySettings,
-                    onFeatureToggle = ::onFeatureToggle
+                    onFeatureToggle = ::onFeatureToggle,
+                    voice = voiceState.value,
+                    onGrantMic = { micPermissionLauncher.launch(android.Manifest.permission.RECORD_AUDIO) },
+                    onOpenKeyboardSettings = { startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS)) },
+                    onPickKeyboard = {
+                        (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager).showInputMethodPicker()
+                    }
                 )
             }
         }
         refreshBubbleState()
+        refreshVoiceState()
         FeatureComponents.sync(this, settings)
     }
 
     override fun onResume() {
         super.onResume()
         refreshBubbleState()
+        refreshVoiceState()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // The keyboard picker is a dialog: closing it doesn't trigger onResume.
+        if (hasFocus) refreshVoiceState()
+    }
+
+    private fun refreshVoiceState() {
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        val ime = ComponentName(this, VoiceKeyboardService::class.java)
+        val current = Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
+        voiceState.value = VoiceUiState(
+            micGranted = ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) ==
+                PackageManager.PERMISSION_GRANTED,
+            keyboardEnabled = imm.enabledInputMethodList.any { it.component == ime },
+            keyboardSelected = current?.let { ComponentName.unflattenFromString(it) } == ime
+        )
     }
 
     private fun onBubbleToggle(on: Boolean) {

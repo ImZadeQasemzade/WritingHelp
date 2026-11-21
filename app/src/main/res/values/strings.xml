@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">WritingHelp</string>
+    <string name="ime_name">Voice Writing Keyboard</string>
+    <string name="subtype_en">English (voice)</string>
+    <string name="subtype_fa">Persian (voice)</string>
     <string name="action_fix_grammar">Fix Grammar</string>
     <string name="action_rewrite">Rewrite with AI</string>
     <string name="action_translate">Translate (EN ⇄ FA)</string>

@@ -2,21 +2,24 @@ package com.writinghelp.rewrite.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -45,9 +48,9 @@ import com.writinghelp.rewrite.data.ClaudeModelOption
 import com.writinghelp.rewrite.data.FALLBACK_MODEL_OPTIONS
 import com.writinghelp.rewrite.data.Feature
 import com.writinghelp.rewrite.data.LANGUAGES
+import com.writinghelp.rewrite.data.SettingsRepository
 import com.writinghelp.rewrite.data.defaultModelFrom
 import com.writinghelp.rewrite.data.descriptionFor
-import com.writinghelp.rewrite.data.SettingsRepository
 import com.writinghelp.rewrite.network.ClaudeApiClient
 import com.writinghelp.rewrite.network.ClaudeResult
 import kotlinx.coroutines.launch
@@ -77,7 +80,11 @@ fun SettingsScreen(
     onKeepInNotificationToggle: (Boolean) -> Unit = {},
     onGrantOverlay: () -> Unit = {},
     onGrantAccessibility: () -> Unit = {},
-    onFeatureToggle: (Feature, Boolean) -> Unit = { _, _ -> }
+    onFeatureToggle: (Feature, Boolean) -> Unit = { _, _ -> },
+    voice: VoiceUiState = VoiceUiState(),
+    onGrantMic: () -> Unit = {},
+    onOpenKeyboardSettings: () -> Unit = {},
+    onPickKeyboard: () -> Unit = {}
 ) {
     var apiKey by remember { mutableStateOf(settingsRepository.apiKey.orEmpty()) }
     var apiKeyVisible by remember { mutableStateOf(false) }
@@ -111,252 +118,267 @@ fun SettingsScreen(
     val selectedModelOption = modelOptions.firstOrNull { it.apiId == selectedModel }
         ?: ClaudeModelOption(selectedModel, selectedModel, descriptionFor(selectedModel))
 
+    fun saveLanguages() {
+        settingsRepository.mainLanguage = mainLanguage
+        settingsRepository.secondLanguage = secondLanguage
+    }
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .systemBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(20.dp)
+            .padding(horizontal = 16.dp, vertical = 20.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text("WritingHelp", style = MaterialTheme.typography.headlineSmall)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Select text in any app and you'll see \"Fix Grammar\" and \"Rewrite with AI\" " +
-                "next to Copy/Paste. On some phones these show under a \"...\" more-options entry " +
-                "in the selection menu instead of inline - that's controlled by the keyboard/OS, not this app.",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(Modifier.padding(horizontal = 4.dp)) {
+            Text("WritingHelp", style = MaterialTheme.typography.headlineSmall)
+            Spacer(Modifier.height(4.dp))
+            Text(
+                "AI writing tools in every app: from the text-selection menu, the floating bubble, " +
+                    "or by voice with the Voice Writing Keyboard.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-        Spacer(Modifier.height(24.dp))
-        Text("Claude API key", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Stored encrypted on this device only, and used to call the Claude API directly " +
-                "from the app. Get a key at console.anthropic.com.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = apiKey,
-            onValueChange = { apiKey = it; savedNotice = false },
-            modifier = Modifier.fillMaxWidth(),
-            label = { Text("API key") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            trailingIcon = {
-                TextButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
-                    Text(if (apiKeyVisible) "Hide" else "Show")
-                }
-            }
-        )
-
-        Spacer(Modifier.height(20.dp))
-        Text("Model", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            if (modelsLive) "Latest models available to your key."
-            else "Built-in list. Save an API key to load the latest models.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-
-        ExposedDropdownMenuBox(
-            expanded = modelMenuExpanded,
-            onExpandedChange = { modelMenuExpanded = it }
+        // ------------------------------------------------------------ 1. Claude
+        SettingsCard(
+            title = "Claude",
+            subtitle = "Your API key is stored encrypted on this device and used to call the Claude API " +
+                "directly. Get one at console.anthropic.com."
         ) {
             OutlinedTextField(
-                value = selectedModelOption.displayName,
-                onValueChange = {},
-                readOnly = true,
-                modifier = Modifier.fillMaxWidth().menuAnchor(),
-                label = { Text("Model") },
-                supportingText = { Text(selectedModelOption.description) },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelMenuExpanded) }
-            )
-            ExposedDropdownMenu(
-                expanded = modelMenuExpanded,
-                onDismissRequest = { modelMenuExpanded = false }
-            ) {
-                modelOptions.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.displayName) },
-                        onClick = {
-                            selectedModel = option.apiId
-                            modelMenuExpanded = false
-                            savedNotice = false
-                        }
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(20.dp))
-        Text("Languages", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Fix Grammar and AI Rewrite always write in your main language. Translate turns " +
-                "your main language into your second one, and anything else into your main one.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-        LanguageDropdown("Main language", mainLanguage) { picked ->
-            // Picking the second language as main swaps the two, so they never match.
-            if (picked == secondLanguage) secondLanguage = mainLanguage
-            mainLanguage = picked
-            savedNotice = false
-        }
-        Spacer(Modifier.height(8.dp))
-        LanguageDropdown("Second language", secondLanguage) { picked ->
-            if (picked == mainLanguage) mainLanguage = secondLanguage
-            secondLanguage = picked
-            savedNotice = false
-        }
-
-        Spacer(Modifier.height(24.dp))
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(
-                onClick = {
-                    settingsRepository.apiKey = apiKey.trim().ifBlank { null }
-                    settingsRepository.model = selectedModel
-                    settingsRepository.mainLanguage = mainLanguage
-                    settingsRepository.secondLanguage = secondLanguage
-                    savedApiKey = settingsRepository.apiKey
-                    savedNotice = true
-                    testState = TestState.Idle
-                },
-                modifier = Modifier.weight(1f)
-            ) { Text("Save") }
-
-            OutlinedButton(
-                enabled = apiKey.isNotBlank() && testState !is TestState.Testing,
-                modifier = Modifier.weight(1f),
-                onClick = {
-                    testState = TestState.Testing
-                    scope.launch {
-                        val client = ClaudeApiClient(apiKey.trim(), selectedModel)
-                        when (val result = client.sendMessage(
-                            systemPrompt = "Reply with exactly one word: OK.",
-                            userText = "Ping"
-                        )) {
-                            is ClaudeResult.Success -> testState = TestState.Success(result.text)
-                            is ClaudeResult.Failure -> testState = TestState.Failed(result.message)
-                        }
+                value = apiKey,
+                onValueChange = { apiKey = it; savedNotice = false },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("API key") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                visualTransformation = if (apiKeyVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                trailingIcon = {
+                    TextButton(onClick = { apiKeyVisible = !apiKeyVisible }) {
+                        Text(if (apiKeyVisible) "Hide" else "Show")
                     }
                 }
-            ) { Text("Test connection") }
-        }
-
-        if (savedNotice) {
+            )
             Spacer(Modifier.height(12.dp))
-            Text("Saved.", color = MaterialTheme.colorScheme.primary)
-        }
-
-        Spacer(Modifier.height(12.dp))
-        when (val state = testState) {
-            is TestState.Idle -> {}
-            is TestState.Testing -> Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
-                Spacer(Modifier.width(8.dp))
-                Text("Testing…")
+            ExposedDropdownMenuBox(
+                expanded = modelMenuExpanded,
+                onExpandedChange = { modelMenuExpanded = it }
+            ) {
+                OutlinedTextField(
+                    value = selectedModelOption.displayName,
+                    onValueChange = {},
+                    readOnly = true,
+                    modifier = Modifier.fillMaxWidth().menuAnchor(),
+                    label = { Text("Model") },
+                    supportingText = {
+                        Text(
+                            selectedModelOption.description +
+                                if (modelsLive) "" else " Save a key to load the latest models."
+                        )
+                    },
+                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = modelMenuExpanded) }
+                )
+                ExposedDropdownMenu(
+                    expanded = modelMenuExpanded,
+                    onDismissRequest = { modelMenuExpanded = false }
+                ) {
+                    modelOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.displayName) },
+                            onClick = {
+                                selectedModel = option.apiId
+                                modelMenuExpanded = false
+                                savedNotice = false
+                            }
+                        )
+                    }
+                }
             }
-            is TestState.Success -> Card {
-                Text(
+            Spacer(Modifier.height(8.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Button(
+                    onClick = {
+                        settingsRepository.apiKey = apiKey.trim().ifBlank { null }
+                        settingsRepository.model = selectedModel
+                        savedApiKey = settingsRepository.apiKey
+                        savedNotice = true
+                        testState = TestState.Idle
+                    },
+                    modifier = Modifier.weight(1f)
+                ) { Text("Save") }
+
+                OutlinedButton(
+                    enabled = apiKey.isNotBlank() && testState !is TestState.Testing,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        testState = TestState.Testing
+                        scope.launch {
+                            val client = ClaudeApiClient(apiKey.trim(), selectedModel)
+                            when (val result = client.sendMessage(
+                                systemPrompt = "Reply with exactly one word: OK.",
+                                userText = "Ping"
+                            )) {
+                                is ClaudeResult.Success -> testState = TestState.Success(result.text)
+                                is ClaudeResult.Failure -> testState = TestState.Failed(result.message)
+                            }
+                        }
+                    }
+                ) { Text("Test connection") }
+            }
+            if (savedNotice) {
+                Spacer(Modifier.height(8.dp))
+                Text("Saved.", color = MaterialTheme.colorScheme.primary)
+            }
+            when (val state = testState) {
+                is TestState.Idle -> {}
+                is TestState.Testing -> Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(top = 8.dp)
+                ) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Testing…")
+                }
+                is TestState.Success -> Text(
                     "Connected - Claude replied: \"${state.reply}\"",
-                    modifier = Modifier.padding(12.dp)
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                is TestState.Failed -> Text(
+                    "Failed: ${state.message}",
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(top = 8.dp)
                 )
             }
-            is TestState.Failed -> Text(
-                "Failed: ${state.message}",
-                color = MaterialTheme.colorScheme.error
+        }
+
+        // ------------------------------------------------------------ 2. Languages
+        SettingsCard(
+            title = "Languages",
+            subtitle = "Fix Grammar and AI Rewrite write in your main language. Translate turns your main " +
+                "language into your second one, and anything else into your main one. Saved right away."
+        ) {
+            LanguageDropdown("Main language", mainLanguage) { picked ->
+                // Picking the second language as main swaps the two, so they never match.
+                if (picked == secondLanguage) secondLanguage = mainLanguage
+                mainLanguage = picked
+                saveLanguages()
+            }
+            Spacer(Modifier.height(8.dp))
+            LanguageDropdown("Second language", secondLanguage) { picked ->
+                if (picked == mainLanguage) mainLanguage = secondLanguage
+                secondLanguage = picked
+                saveLanguages()
+            }
+        }
+
+        // ------------------------------------------------------------ 3. Voice keyboard
+        SettingsCard(
+            title = "Voice Writing Keyboard",
+            subtitle = "A keyboard you talk to: dictate in English or Persian and fix the text by voice."
+        ) {
+            VoiceKeyboardSection(
+                settingsRepository = settingsRepository,
+                voice = voice,
+                onGrantMic = onGrantMic,
+                onOpenKeyboardSettings = onOpenKeyboardSettings,
+                onPickKeyboard = onPickKeyboard
             )
         }
 
-        Spacer(Modifier.height(28.dp))
-        Text("Actions", style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            "Choose what WritingHelp offers. Changes apply right away.",
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Feature.entries.forEach { feature ->
-            Spacer(Modifier.height(10.dp))
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
-                    Text(feature.title, style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        feature.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        // ------------------------------------------------------------ 4. Text actions
+        SettingsCard(
+            title = "Text actions",
+            subtitle = "Select text in any app to see Fix Grammar, Rewrite with AI and Translate next to " +
+                "Copy/Paste (on some phones under \"...\"). Switching one off removes it everywhere."
+        ) {
+            Feature.entries.forEachIndexed { i, feature ->
+                if (i > 0) Spacer(Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.weight(1f).padding(end = 12.dp)) {
+                        Text(feature.title, style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            feature.description,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = featureStates[feature] ?: true,
+                        onCheckedChange = { on ->
+                            featureStates = featureStates + (feature to on)
+                            onFeatureToggle(feature, on)
+                        }
                     )
                 }
-                Switch(
-                    checked = featureStates[feature] ?: true,
-                    onCheckedChange = { on ->
-                        featureStates = featureStates + (feature to on)
-                        onFeatureToggle(feature, on)
-                    }
-                )
             }
         }
 
-        Spacer(Modifier.height(28.dp))
-        Text(stringResource(R.string.bubble_section_title), style = MaterialTheme.typography.titleMedium)
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.bubble_section_blurb),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(Modifier.height(8.dp))
-
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.bubble_switch_label), modifier = Modifier.weight(1f))
-            Switch(checked = bubble.running, onCheckedChange = onBubbleToggle)
-        }
-
-        val statusRes = when {
-            bubble.running -> R.string.bubble_status_on
-            bubble.enabled && !bubble.canOverlay -> R.string.bubble_status_needs_overlay
-            bubble.enabled && !bubble.accessibilityOn -> R.string.bubble_status_needs_accessibility
-            else -> R.string.bubble_status_off
-        }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(statusRes),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        if (bubble.enabled && !bubble.canOverlay) {
-            TextButton(onClick = onGrantOverlay, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                Text(stringResource(R.string.bubble_grant_overlay))
+        // ------------------------------------------------------------ 5. Floating bubble
+        SettingsCard(
+            title = stringResource(R.string.bubble_section_title),
+            subtitle = stringResource(R.string.bubble_section_blurb)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.bubble_switch_label), modifier = Modifier.weight(1f))
+                Switch(checked = bubble.running, onCheckedChange = onBubbleToggle)
             }
-        }
-        if (bubble.enabled && bubble.canOverlay && !bubble.accessibilityOn) {
-            TextButton(onClick = onGrantAccessibility, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
-                Text(stringResource(R.string.bubble_grant_accessibility))
+            val statusRes = when {
+                bubble.running -> R.string.bubble_status_on
+                bubble.enabled && !bubble.canOverlay -> R.string.bubble_status_needs_overlay
+                bubble.enabled && !bubble.accessibilityOn -> R.string.bubble_status_needs_accessibility
+                else -> R.string.bubble_status_off
             }
+            Text(
+                stringResource(statusRes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (bubble.enabled && !bubble.canOverlay) {
+                TextButton(onClick = onGrantOverlay, contentPadding = PaddingValues(0.dp)) {
+                    Text(stringResource(R.string.bubble_grant_overlay))
+                }
+            }
+            if (bubble.enabled && bubble.canOverlay && !bubble.accessibilityOn) {
+                TextButton(onClick = onGrantAccessibility, contentPadding = PaddingValues(0.dp)) {
+                    Text(stringResource(R.string.bubble_grant_accessibility))
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.notif_keep_label), modifier = Modifier.weight(1f))
+                Switch(checked = bubble.keepInNotification, onCheckedChange = onKeepInNotificationToggle)
+            }
+            Text(
+                stringResource(R.string.notif_keep_blurb),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
+    }
+}
 
-        Spacer(Modifier.height(16.dp))
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.notif_keep_label), modifier = Modifier.weight(1f))
-            Switch(checked = bubble.keepInNotification, onCheckedChange = onKeepInNotificationToggle)
+/** A titled group of settings. */
+@Composable
+internal fun SettingsCard(title: String, subtitle: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text(title, style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(2.dp))
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
+            content()
         }
-        Spacer(Modifier.height(4.dp))
-        Text(
-            stringResource(R.string.notif_keep_blurb),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

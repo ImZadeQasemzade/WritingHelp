@@ -37,6 +37,34 @@ whole field when nothing is selected, and replaces the text in place:
 Every action can be switched on or off under **Settings ▸ Actions**. Switching off Fix Grammar,
 AI Rewrite or Translate also removes it from the text-selection menu.
 
+### Voice Writing Keyboard
+
+WritingHelp also includes a voice-first keyboard (an Android input method). Switch to it in
+any app to dictate in English or Persian, and fix the text by voice without the regular keyboard.
+Set it up in **Settings ▸ Voice Writing Keyboard**: allow the microphone, turn the keyboard on,
+then switch to it. Tap ? on the keyboard for the list of voice commands (also under **Voice commands** in Settings); long-press ? to open Settings.
+
+- **Layout:** live transcript strip (with a green chip after a command), alternate-phrase
+  suggestions, EN/FA toggle, big mic (continuous listening), AUTO / DICTATE / COMMAND mode, and
+  quick keys: Undo, Redo, Delete word, Delete sentence, New line, ? (commands).
+- **Commands** (EN / FA): undo / برگرد · redo / دوباره · delete last word / آخرین کلمه رو پاک کن ·
+  delete last sentence / آخرین جمله رو پاک کن · replace X with Y / X رو به Y تغییر بده ·
+  new line / خط جدید · send / بفرست. All phrases are in one file,
+  [`voice/core/CommandPhrases.kt`](app/src/main/java/com/writinghelp/rewrite/voice/core/CommandPhrases.kt).
+- **Undo** uses the keyboard's own history, so it works in apps that have no undo. It refuses
+  rather than damaging text if you've changed the field by hand since.
+- **Smart voice edits** (off by default): spoken edits the commands can't do, such as "make the
+  last sentence more formal", "fix the grammar" or "translate that to Persian", go to Claude with
+  up to ~2,000 characters around the cursor. They use the same API key and model as the rest of
+  WritingHelp. The reply must be strict JSON (`replace_range` / `insert` / `delete_range` /
+  `dictation` / `none` with offsets plus the `original` text, so wrong offsets can be detected);
+  anything invalid shows "Couldn't apply" and changes nothing. Each edit is one undo step, with an
+  8 s timeout and an optional ✓ / ✗ preview. Never used in password or incognito fields.
+
+Code: `voice/core` (classifier, editor, history: pure Kotlin, unit tested), `voice/speech`
+(SpeechRecognizer wrapper), `voice/ime` (the service), `voice/ui` (Compose keyboard),
+`voice/llm` (smart-edit parser and pipeline over `ClaudeApiClient`).
+
 There's no iOS equivalent of this feature: unlike Android, iOS doesn't let third-party apps add
 entries to the system-wide text-selection menu in other apps.
 

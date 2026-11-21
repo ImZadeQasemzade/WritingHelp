@@ -2,8 +2,15 @@ package com.writinghelp.rewrite.network
 
 import com.writinghelp.rewrite.data.ClaudeModelOption
 import com.writinghelp.rewrite.data.descriptionFor
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import okhttp3.Call
+import okhttp3.Callback
+import okhttp3.Response
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -15,7 +22,22 @@ import java.util.concurrent.TimeUnit
 
 sealed class ClaudeResult {
     data class Success(val text: String) : ClaudeResult()
-    data class Failure(val message: String, val isAuthError: Boolean = false) : ClaudeResult()
+    data class Failure(
+        val message: String,
+        val isAuthError: Boolean = false,
+        val isNetworkError: Boolean = false
+    ) : ClaudeResult()
+}
+
+/** Runs the call on OkHttp's dispatcher and cancels it if the coroutine is cancelled. */
+private suspend fun Call.await(): Response = suspendCancellableCoroutine { cont ->
+    cont.invokeOnCancellation { cancel() }
+    enqueue(object : Callback {
+        override fun onResponse(call: Call, response: Response) = cont.resume(response)
+        override fun onFailure(call: Call, e: IOException) {
+            if (!cont.isCancelled) cont.resumeWithException(e)
+        }
+    })
 }
 
 /**
@@ -48,7 +70,8 @@ class ClaudeApiClient(
                     .post(requestJson.toString().toRequestBody("application/json".toMediaType()))
                     .build()
 
-                httpClient.newCall(request).execute().use { response ->
+                // Cancellable: a coroutine timeout (e.g. the voice keyboard's 8 s) cancels the call.
+                httpClient.newCall(request).await().use { response ->
                     val bodyString = response.body?.string().orEmpty()
 
                     if (!response.isSuccessful) {
@@ -65,8 +88,10 @@ class ClaudeApiClient(
                         ClaudeResult.Success(text.trim())
                     }
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: IOException) {
-                ClaudeResult.Failure("Couldn't reach Claude: ${e.message ?: "network error"}")
+                ClaudeResult.Failure("Couldn't reach Claude: ${e.message ?: "network error"}", isNetworkError = true)
             } catch (e: Exception) {
                 ClaudeResult.Failure("Unexpected error: ${e.message ?: e.javaClass.simpleName}")
             }

@@ -54,6 +54,28 @@ class SettingsRepository(context: Context) {
     val languages: LanguagePair
         get() = LanguagePair(mainLanguage, secondLanguage)
 
+    // ---- Voice keyboard ----
+
+    /** Last EN/FA choice on the voice keyboard: "EN" or "FA". */
+    var voiceLanguage: String
+        get() = prefs.getString(KEY_VOICE_LANGUAGE, null) ?: if (mainLanguage == "Persian") "FA" else "EN"
+        set(value) = prefs.edit().putString(KEY_VOICE_LANGUAGE, value).apply()
+
+    /** AUTO / DICTATE / COMMAND. */
+    var voiceMode: String
+        get() = prefs.getString(KEY_VOICE_MODE, "AUTO") ?: "AUTO"
+        set(value) = prefs.edit().putString(KEY_VOICE_MODE, value).apply()
+
+    /** Voice smart edits send nearby text to Claude without a button press, so they start off. */
+    var voiceSmartEdits: Boolean
+        get() = prefs.getBoolean(KEY_VOICE_SMART, false)
+        set(value) = prefs.edit().putBoolean(KEY_VOICE_SMART, value).apply()
+
+    /** Show a voice smart edit with ✓ / ✗ before applying it. */
+    var voiceSmartPreview: Boolean
+        get() = prefs.getBoolean(KEY_VOICE_PREVIEW, false)
+        set(value) = prefs.edit().putBoolean(KEY_VOICE_PREVIEW, value).apply()
+
     /** Every action is on until the user switches it off in Settings. */
     fun isEnabled(feature: Feature): Boolean = prefs.getBoolean(feature.prefKey, true)
 
@@ -77,5 +99,9 @@ class SettingsRepository(context: Context) {
         const val KEY_KEEP_IN_NOTIFICATION = "keep_in_notification"
         const val KEY_MAIN_LANGUAGE = "main_language"
         const val KEY_SECOND_LANGUAGE = "second_language"
+        const val KEY_VOICE_LANGUAGE = "voice_language"
+        const val KEY_VOICE_MODE = "voice_mode"
+        const val KEY_VOICE_SMART = "voice_smart_edits"
+        const val KEY_VOICE_PREVIEW = "voice_smart_preview"
     }
 }
