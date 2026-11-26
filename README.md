@@ -128,14 +128,21 @@ app/src/main/java/com/writinghelp/rewrite/
 
 ## Windows app
 
-`windows/` holds a Windows tray app with the same three actions (Fix Grammar, AI Rewrite with
-the refinement chips, Translate), the same prompts, the same main/second language settings and
-the same live model list (Sonnet by default).
+`windows/` holds a Windows tray app with the same actions as the Android bubble (Fix Grammar,
+AI Rewrite with the tone chips, Translate, Write for me, and Why? explanations), the same
+prompts, the same main/second language settings, the same live model list (Sonnet by default)
+and the same blue pencil icon. The voice keyboard is Android only.
 
 Windows doesn't let one app add entries to other apps' right-click menus, so you select text
 anywhere and either press **Ctrl+Shift+Space** or **Ctrl + right-click**. A small menu opens at the
 pointer; pick an action, then **Replace** pastes the result over your selection (or **Copy** it).
-Both triggers can be switched off in Settings (tray icon → Settings…), along with
+After Fix Grammar or AI Rewrite, **Why?** shows short bullet points on what changed and why.
+
+**Write for me**: press the shortcut with nothing selected (or pick it from the menu), describe
+what you need, e.g. "an email to my friend about Saturday", and **Insert** puts the result at the
+cursor (or **Replace** puts it over the selection). Tone chips work on the result.
+
+Settings (tray icon → Settings…) switch each action on or off, and the two triggers and
 "Start with Windows". Settings live in `%APPDATA%\WritingHelp`, with the API key encrypted by
 Windows DPAPI.
 
@@ -152,4 +159,5 @@ python -m venv .venv
 .venv\Scripts\python build.py      # -> exe\WritingHelp.exe
 ```
 
-Run from source with `.venv\Scripts\python run.py`.
+Run from source with `.venv\Scripts\python run.py`, and the tests with
+`.venv\Scripts\python -m unittest discover tests`.

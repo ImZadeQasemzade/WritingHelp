@@ -1,5 +1,6 @@
 """Modes, languages, models and system prompts. Kept in step with the Android app's data package."""
 
+import re
 from dataclasses import dataclass
 from enum import Enum
 
@@ -8,11 +9,40 @@ class Mode(Enum):
     FIX_GRAMMAR = ("Fix Grammar", "Fixing grammar…", False)
     REWRITE = ("AI Rewrite", "Rewriting…", True)
     TRANSLATE = ("Translate", "Translating…", False)
+    # The input is a request ("an email to my friend…"), not text to transform.
+    WRITE = ("Write for me", "Writing…", True)
 
     def __init__(self, title, loading_label, supports_refinement):
         self.title = title
         self.loading_label = loading_label
         self.supports_refinement = supports_refinement
+
+
+class Feature(Enum):
+    """Actions the user can switch on or off in Settings (same keys as Android's Feature)."""
+
+    FIX_GRAMMAR = ("feature_fix_grammar", "Fix Grammar",
+                   "Corrects grammar, spelling and punctuation.", Mode.FIX_GRAMMAR)
+    REWRITE = ("feature_rewrite", "AI Rewrite",
+               "Rewrites your text to read better, with tone chips.", Mode.REWRITE)
+    TRANSLATE = ("feature_translate", "Translate",
+                 "Between your main and second language.", Mode.TRANSLATE)
+    WRITE = ("feature_write", "Write for me",
+             'Describe what you need ("an email to my friend…") and it writes it at the cursor. '
+             "Also opens when nothing is selected.", Mode.WRITE)
+    EXPLAIN = ("feature_explain", "Explain changes",
+               'A "Why?" button after Fix Grammar or AI Rewrite shows short bullet points on '
+               "what changed and why.", None)
+
+    def __init__(self, key, title, description, mode):
+        self.key = key
+        self.title = title
+        self.description = description
+        self.mode = mode
+
+    @staticmethod
+    def for_mode(mode: "Mode") -> "Feature":
+        return next(f for f in Feature if f.mode is mode)
 
 
 @dataclass(frozen=True)
@@ -100,6 +130,17 @@ def system_prompt_for(mode: Mode, main: str, second: str, refinement: str | None
             "style. Do not rephrase sentences that are already correct, and do not make "
             f"the message more formal than the original. {_output_rules(main)}"
         )
+    if mode is Mode.WRITE:
+        return (
+            "You are a writing assistant. The user tells you what they want written, for "
+            'example "an email to my friend inviting her to dinner on Saturday", and '
+            "you write it for them, ready to send. Match the tone the request implies "
+            "(casual for friends, polished for work), keep it natural and appropriately "
+            "short, and don't invent specific facts such as names, dates or places beyond "
+            "what the request gives; where something is missing, keep the wording general "
+            f"instead of adding placeholders in brackets. Write in {main}, in its "
+            f"native script, unless the request asks for another language. {TAG_RULES}"
+        )
     if mode is Mode.REWRITE:
         prompt = (
             "You are a writing assistant that rewrites short personal messages to be "
@@ -117,3 +158,31 @@ def system_prompt_for(mode: Mode, main: str, second: str, refinement: str | None
         "translation. Decide the direction silently and never mention the languages. "
         f"{TAG_RULES}"
     )
+
+
+def explain_prompt(main: str) -> str:
+    """ "Why?": short, teachable bullet points on what changed between the text and the result."""
+    return (
+        "You are a friendly writing tutor helping someone learn to write better. You get their "
+        "ORIGINAL text and a REVISED version. Explain the most useful changes in 2 to 6 "
+        "bullet points. Keep every bullet short (under 20 words): quote the change briefly "
+        "and name the reason or rule, for example: 'has went' → 'has gone': use the past "
+        "participle after 'has'. Focus on what helps them write better next time (grammar "
+        "rules, word choice, clarity, tone) and skip trivial or repeated changes. If nothing "
+        "meaningful changed, give one bullet saying the text was already fine. Write the "
+        f"explanations in {main}, keeping the quoted words as they appear. Put "
+        f'each bullet on its own line, starting with "• ". {TAG_RULES}'
+    )
+
+
+def explain_input(original: str, revised: str) -> str:
+    return f"ORIGINAL:\n{original}\n\nREVISED:\n{revised}"
+
+
+_BULLET_PREFIX = re.compile(r"^\s*(?:[•·▪●◦*\-–—]+|\d+[.)])\s*")
+
+
+def parse_bullets(reply: str) -> list[str]:
+    """One bullet per non-blank line, with any leading marker or numbering ("•", "-", "1.") removed."""
+    bullets = (_BULLET_PREFIX.sub("", line, count=1).strip() for line in reply.splitlines())
+    return [b for b in bullets if b]

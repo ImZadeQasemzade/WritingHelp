@@ -49,7 +49,8 @@ class Controller(QObject):
             self.settings.welcome_shown = True
             self.tray.notify(
                 "WritingHelp is running",
-                f"Select text anywhere, then press {winapi.HOTKEY_LABEL} or Ctrl + right-click.",
+                f"Select text anywhere, then press {winapi.HOTKEY_LABEL} or Ctrl + right-click. "
+                "With nothing selected, it opens Write for me.",
             )
 
     def apply_triggers(self):
@@ -85,9 +86,14 @@ class Controller(QObject):
 
     def _on_captured(self, text, previous, hwnd, anchor):
         self.capturing = False
-        if not text or not text.strip():
-            self.tray.notify("Nothing selected", "Select some text first, then try again.")
+        selected = bool(text and text.strip())
+        if not self.popup.enabled_modes(selected):
+            if selected:
+                self.tray.notify("All actions are off", "Turn some on in Settings (tray icon → Settings…).")
+            else:
+                self.tray.notify("Nothing selected", "Select some text first, then try again.")
             return
+        # With nothing selected, this opens Write for me, which inserts at the cursor.
         self.popup.open_for(text, previous, hwnd, anchor)
 
     def quit(self):

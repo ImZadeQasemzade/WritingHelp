@@ -101,6 +101,12 @@ class Settings:
         lambda s: s._get("welcome_shown", False), lambda s, v: s._set("welcome_shown", v)
     )
 
+    def feature_enabled(self, feature) -> bool:
+        return bool(self._get(feature.key, True))
+
+    def set_feature_enabled(self, feature, enabled: bool):
+        self._set(feature.key, bool(enabled))
+
     # Start with Windows lives in the registry rather than the JSON, so it can't drift out of sync.
     @property
     def start_with_windows(self) -> bool:
