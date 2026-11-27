@@ -7,11 +7,11 @@ from PySide6.QtCore import QEvent, QObject, QPoint, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import (
     QAction, QColor, QFont, QGuiApplication, QIcon, QKeySequence, QPainter, QPainterPath, QPen,
     QPixmap,
-    QShortcut, QTextCursor,
+    QCursor, QShortcut, QTextCursor,
 )
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDialog, QFormLayout, QFrame, QHBoxLayout, QLabel, QLineEdit, QMenu,
-    QLayout, QPushButton, QTextEdit, QSystemTrayIcon, QVBoxLayout, QWidget,
+    QLayout, QPushButton, QScrollArea, QTextEdit, QSystemTrayIcon, QVBoxLayout, QWidget,
 )
 
 from . import claude, winapi
@@ -613,10 +613,34 @@ class SettingsWindow(QDialog):
         buttons.addWidget(cancel)
         buttons.addWidget(save)
 
+        # The form scrolls and the Save/Cancel row stays put, so the window fits small or
+        # scaled-up screens.
+        content = QWidget()
+        content.setLayout(form)
+        self.scroll = QScrollArea()
+        self.scroll.setWidget(content)
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+
         layout = QVBoxLayout(self)
-        layout.addLayout(form)
+        layout.addWidget(self.scroll)
         layout.addSpacing(8)
         layout.addLayout(buttons)
+
+    def _fit_to_screen(self):
+        """As tall as the form needs, but never taller than the screen, centred on it."""
+        screen = QGuiApplication.screenAt(QCursor.pos()) or QGuiApplication.primaryScreen()
+        area = screen.availableGeometry()
+        # Title bar; before the first show Qt doesn't know it yet, so assume a typical one.
+        frame = max(self.frameGeometry().height() - self.geometry().height(), 40)
+        content = self.scroll.widget().sizeHint().height()
+        chrome = self.sizeHint().height() - self.scroll.sizeHint().height()
+        height = min(content + chrome + 4, area.height() - frame - 24)
+        width = min(max(self.width(), self.minimumWidth()), area.width() - 24)
+        self.resize(width, height)
+        self.move(area.left() + (area.width() - width) // 2,
+                  area.top() + max(0, (area.height() - height - frame) // 2))
 
     def open_window(self):
         self.key_edit.setText(self.settings.api_key)
@@ -630,6 +654,9 @@ class SettingsWindow(QDialog):
             check.setChecked(self.settings.feature_enabled(feature))
         self._fill_models(self.settings.model, live=False)
         self._fetch_models()
+        self.scroll.verticalScrollBar().setValue(0)
+        if not self.isVisible():
+            self._fit_to_screen()
         self.show()
         self.raise_()
         self.activateWindow()
